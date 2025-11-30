@@ -1,0 +1,153 @@
+---
+title: "Modeling"
+format: html
+editor: visual
+---
+
+```{r}
+library(future) #for multithread
+plan(multisession, workers = 5) # Use 5 cores
+```
+
+
+repeat some summaries
+
+Split the data into a training (70% of the data) and test set (30% of the data).
+```{r}
+library(tidymodels)
+
+#metrics_binary <- metric_set(mn_log_loss)
+
+set.seed(10)
+diab_split <- initial_split(diabetes_data, prop = 0.70) #split the training and test set 70/30
+diab_train <- training(diab_split)
+diab_test <- testing(diab_split)
+diab_train
+```
+
+```{r}
+diab_CV_folds <- vfold_cv(diab_train, 5)
+```
+
+
+```{r}
+class_tree_rec <- recipe(Diabetes_binary ~ HighBP + HighChol + Smoker 
+                         + PhysActivity + Age,
+                         data = diab_train) |>
+  step_dummy(HighBP, HighChol, Smoker, PhysActivity, Age)
+```
+
+```{r}
+tree_mod <- decision_tree(tree_depth = tune(),
+                          min_n = 20,
+                          cost_complexity = tune()) |>
+  set_engine("rpart") |>
+  set_mode("classification")
+```
+
+
+```{r}
+tree_wkf <- workflow() |>
+  add_recipe(class_tree_rec) |>
+  add_model(tree_mod)
+```
+
+```{r}
+tree_grid <- grid_regular(cost_complexity(),
+                          tree_depth(),
+                          levels = c(10, 5))
+```
+
+```{r}
+tree_fits <- tree_wkf |> 
+  tune_grid(resamples = diab_CV_folds,
+            grid = tree_grid,
+            metrics = metric_set(mn_log_loss))
+tree_fits
+```
+
+```{r}
+tree_best_params <- select_best(tree_fits, metric = "mn_log_loss")
+tree_best_params
+```
+
+```{r}
+tree_final_wkf <- tree_wkf |>
+  finalize_workflow(tree_best_params)
+```
+
+
+```{r}
+tree_final_fit <- tree_final_wkf |>
+  last_fit(diab_split, metrics = metric_set(accuracy, mn_log_loss))
+tree_final_fit
+```
+
+```{r}
+tree_final_fit |>
+  collect_metrics()
+```
+
+```{r}
+tree_final_model <- extract_workflow(tree_final_fit) 
+tree_final_model |>
+  extract_fit_engine() |>
+  rpart.plot::rpart.plot(roundint = FALSE)
+```
+
+
+Random Forest Tree Model
+```{r}
+rf_spec <- rand_forest(mtry = tune(), trees = 100) |>
+  set_engine("ranger") |>
+  set_mode("classification")
+```
+
+```{r}
+rf_wkf <- workflow() |>
+  add_recipe(class_tree_rec) |>
+  add_model(rf_spec)
+```
+
+
+```{r}
+rf_fit <- rf_wkf |>
+  tune_grid(resamples = diab_CV_folds, 
+            grid = 10,
+            metrics = metric_set(accuracy, mn_log_loss))
+```
+
+
+```{r}
+rf_fit |>
+  collect_metrics() |>
+  filter(.metric == "mn_log_loss") |> 
+  arrange(mean)
+```
+
+best tuning parameter
+```{r}
+rf_best_params <- select_best(rf_fit, metric = "mn_log_loss")
+rf_best_params
+```
+
+Refit
+```{r}
+rf_final_wkf <- rf_wkf |>
+  finalize_workflow(rf_best_params)
+rf_final_fit <- rf_final_wkf |>
+  last_fit(diab_split, metrics = metric_set(accuracy, mn_log_loss))
+```
+
+
+Compare Models
+```{r}
+tree_final_fit |>
+  collect_metrics()
+```
+
+```{r}
+rf_final_fit |>
+  collect_metrics()
+```
+
