@@ -4,22 +4,30 @@ format: html
 editor: visual
 ---
 
+Final Project ST558
+Ella Gruchacz
+
 # Exploratory Data Analysis
 
 ```{r}
 library(tidyverse)
 ```
 
-
 ## Introduction
 
+The data we are working with is a clean dataset of 253,680 survey responses to the CDC's BRFSS2015. BRFSS or the Behavioral Risk Factor Surveillance System is a telephone conducted survey by the CDC to gain data and understand American's health behaviors and conditions. Our data set has a primary response variable of Diabetes_binary indicating 1 if they do have diabetes and 0 if not. The other variables we will be exploring are HighBP (categorical of high blood pressure or not), HighChol (categorical of high cholesterol), BMI (numeric), Smoker(categorical of have smoked more than 100 cigarettes or not), Stroke (categorical of every had a stroke or not), HeartDiseaseorAttack (categorical of ever had coronary heart disease (CHD)/myocardial infarction (MI) or not), PhysActivity (categorical of if engaged in physical activity in the last 30 days or not), Sex(male or female), Age (Categorical Age Groups), Education (Categorical Education Levels).
+
+In this EDA we will be exploring the variables mentioned above, specifically, how they relate to our diabetes variable. We will expore how these variables differ between the response of those who have diabetes and those who do not. Noticeable differences will indicate we might want to use those variables later as predictors in a model. Our future model will attempt to help predict if a person does or does not have diabetes.
 
 ## Data
+
 Read in the data
+
 ```{r}
 diabetes_data <- read.csv("diabetes_binary_health_indicators_BRFSS2015.csv")
 ```
 
+Change variables as needed to factors.
 ```{r}
 diabetes_data<- diabetes_data |>
   mutate(Diabetes_binary = factor(Diabetes_binary, levels = c(0,1),
@@ -70,66 +78,297 @@ Check for missingness in the data
 colSums(is.na(diabetes_data))
 ```
 
-No missingness 
+No missingness
 
-Here we will investigate the columns of the data by looking at column types, checking the summary statistics for the numeric columns and checking the unique values for the categorical variables.
+Here we will investigate the dimensions of our data as well as the columns of the data by looking at column types and checking the unique values.
 
 ```{r}
 str(diabetes_data)
 ```
 
-```{r}
-#psych::describe(diabetes_data)
-```
+## Summaries
 
-We will first create some summaries related to Diabetes_binary since that will be our response variable later modeling.
+We will create some summaries related to Diabetes_binary since that will be our response variable later modeling.
 
-Contigency Tables
+Contingency Tables
+
 ```{r}
 diabetes_count <- table(diabetes_data$Diabetes_binary)
 diabetes_count
 ```
-Percentage of people in this dataset who have diabetes
-```{r}
-diabetes_count[2]/(diabetes_count[1]+diabetes_count[2])
-```
+
+Percentage of people in this data set who have diabetes
 
 ```{r}
-table(diabetes_data$Diabetes_binary, diabetes_data$HighBP)
+diabetes_count["diabetes"]/length(diabetes_data$Diabetes_binary)
+```
+
+Now we will begin to investigate how other variables in this data set compare against the population of people have or do not have diabetes.
+
+Diabetes vs High Blood Pressure
+```{r}
+diabetes_BP_count <- table(diabetes_data$Diabetes_binary, diabetes_data$HighBP)
+diabetes_BP_count
+```
+
+Proportion of diabetics who have high blood pressure
+
+```{r}
+diabetes_BP_count[[4]]/(diabetes_BP_count[[2]] + diabetes_BP_count[[4]])
+```
+
+Proportion of non-diabetics who have high blood pressure
+
+```{r}
+diabetes_BP_count[[3]]/(diabetes_BP_count[[1]] + diabetes_BP_count[[3]])
 ```
 
 ```{r}
 g <- ggplot(data = diabetes_data, aes(x = Diabetes_binary, fill = HighBP))
-g + geom_bar()
+g + geom_bar(position = "fill") + 
+  labs(x = "Diabetes Indicator", title = "Proportion of Diabetes vs High Blood Pressure")
 ```
 
-We can see a higher proportion of people with diabetes also have high blood pressure.
+We can see there is a higher proportion of people with diabetes that have high blood pressure compared to people who do not have diabetes.
 
+Diabetes and High Cholesterol
 
 ```{r}
-table(diabetes_data$Diabetes_binary, diabetes_data$HighChol)
+diabetes_HChol_count <- table(diabetes_data$Diabetes_binary, diabetes_data$HighChol)
+diabetes_HChol_count
+```
+
+Proportion of diabetics who have high cholesterol
+
+```{r}
+diabetes_HChol_count[[4]]/(diabetes_HChol_count[[2]]+diabetes_HChol_count[[4]])
+```
+
+Proportion of non-diabetics who have high cholesterol
+
+```{r}
+diabetes_HChol_count[[3]]/(diabetes_HChol_count[[3]]+diabetes_HChol_count[[1]])
 ```
 
 ```{r}
 g <- ggplot(data = diabetes_data, aes(x = Diabetes_binary, fill = HighChol))
-g + geom_bar()
+g + geom_bar(position = "fill") + 
+  labs(x = "Diabetes Indicator", title = "Proportion of Diabetes vs High Cholesterol")
+```
+
+Based on these proportions, it's more common for some with diabetes to also have high cholesterol compared to those who do not have diabetes.
+
+Diabetes and Smoker
+
+```{r}
+diabetes_Smoker_count <- table(diabetes_data$Diabetes_binary, diabetes_data$Smoker)
+diabetes_Smoker_count
+```
+
+Proportion of diabetics who smoke
+
+```{r}
+diabetes_Smoker_count[[4]]/(diabetes_Smoker_count[[2]]+diabetes_Smoker_count[[4]])
+```
+
+Proportion of non-diabetics who smoke
+
+```{r}
+diabetes_Smoker_count[[3]]/(diabetes_Smoker_count[[3]]+diabetes_Smoker_count[[1]])
+```
+
+```{r}
+g <- ggplot(data = diabetes_data, aes(x = Diabetes_binary, fill = Smoker))
+g + geom_bar(position = "fill") + 
+  labs(x = "Diabetes Indicator", title = "Proportion of Diabetes vs Smoker")
+```
+A slightly high proportion of people who have diabetes also smoke compare to those who do not have diabetes, but there is likely not a significant difference.
+
+Diabetes and Sex
+
+```{r}
+diabetes_Sex_count <- table(diabetes_data$Diabetes_binary, diabetes_data$Sex)
+diabetes_Sex_count
+```
+
+Proportion of diabetics who are male
+
+```{r}
+diabetes_Sex_count[[4]]/(diabetes_Sex_count[[2]]+diabetes_Sex_count[[4]])
+```
+
+Proportion of non-diabetics who are male
+
+```{r}
+diabetes_Sex_count[[3]]/(diabetes_Sex_count[[3]]+diabetes_Sex_count[[1]])
 ```
 
 ```{r}
 g <- ggplot(data = diabetes_data, aes(x = Diabetes_binary, fill = Sex))
-g + geom_bar()
+g + geom_bar(position = "fill") + 
+  labs(x = "Diabetes Indicator", title = "Proportion of Diabetes vs Sex")
 ```
-We have a fairly even split between men and women who are or are not diabetic.
+
+We have a fairly even split between men and women who are diabetic and there is a slightly higher proportion of females compared to males who are non diabetic. However, there also appears to be slightly more females overall in this data set.
+
+Diabetes and Stroke
+
+```{r}
+diabetes_Stroke_count <- table(diabetes_data$Diabetes_binary, diabetes_data$Stroke)
+diabetes_Stroke_count
+```
+
+Proportion of diabetics who have had a stroke
+
+```{r}
+diabetes_Stroke_count[[4]]/(diabetes_Stroke_count[[2]]+diabetes_Stroke_count[[4]])
+```
+
+Proportion of non-diabetics who have had a stroke
+
+```{r}
+diabetes_Stroke_count[[3]]/(diabetes_Stroke_count[[3]]+diabetes_Stroke_count[[1]])
+```
+
+```{r}
+g <- ggplot(data = diabetes_data, aes(x = Diabetes_binary, fill = Stroke))
+g + geom_bar(position = "fill") + 
+  labs(x = "Diabetes Indicator", title = "Proportion of Diabetes vs Stroke")
+```
+Overall most people have not had stroke, there is a higher proportion in those who are diabetic, but maybe not the best indicator.
+
+Diabetes and Heart Disease or Attack
+
+```{r}
+diabetes_Heart_count <- table(diabetes_data$Diabetes_binary, diabetes_data$HeartDiseaseorAttack)
+diabetes_Heart_count
+```
+
+Proportion of diabetics who have had a heart disease or attack
+
+```{r}
+diabetes_Heart_count[[4]]/(diabetes_Heart_count[[2]]+diabetes_Heart_count[[4]])
+```
+
+Proportion of non-diabetics who have had heart disease or attack
+
+```{r}
+diabetes_Heart_count[[3]]/(diabetes_Heart_count[[3]]+diabetes_Heart_count[[1]])
+```
+
+```{r}
+g <- ggplot(data = diabetes_data, aes(x = Diabetes_binary, fill = HeartDiseaseorAttack))
+g + geom_bar(position = "fill") + 
+  labs(x = "Diabetes Indicator", title = "Proportion of Diabetes vs Heart Disease or Attack")
+```
+The majority of both populations do not have heart disease or heart attacks but there is a higher rate in those who have diabetes.
+
+Diabetes and Physical Activity
+
+```{r}
+diabetes_Phys_count <- table(diabetes_data$Diabetes_binary, diabetes_data$PhysActivity)
+diabetes_Phys_count
+```
+
+Proportion of diabetics who are physically active
+
+```{r}
+diabetes_Phys_count[[4]]/(diabetes_Phys_count[[2]]+diabetes_Phys_count[[4]])
+```
+
+Proportion of non-diabetics who are physically active
+
+```{r}
+diabetes_Phys_count[[3]]/(diabetes_Phys_count[[3]]+diabetes_Phys_count[[1]])
+```
+
+```{r}
+g <- ggplot(data = diabetes_data, aes(x = Diabetes_binary, fill = PhysActivity))
+g + geom_bar(position = "fill") + 
+  labs(x = "Diabetes Indicator", title = "Proportion of Diabetes vs Physical Activity")
+```
+While most people reported to have engaged in physical activity in the last 30 day, it is less common for those who have diabetes compared to those who do not have diabetes.
+
+Age
+
+```{r}
+diabetes_data |>
+  filter(Diabetes_binary == "diabetes")|>
+  summarize(mean_Age_cat = mean(as.numeric(Age)))
+```
+
+```{r}
+diabetes_data |>
+  filter(Diabetes_binary == "no diabetes")|>
+  summarize(mean_Age_cat = mean(as.numeric(Age)))
+```
 
 ```{r}
 g <- ggplot(data = diabetes_data, aes(x = Age))
 g + geom_bar() +
-  facet_wrap(~ Diabetes_binary)
+  facet_wrap(~ Diabetes_binary) + 
+  labs(title = "Histogram of Age Groups Across Diabetes Indicator")
+```
+
+```{r}
+g <- ggplot(data = diabetes_data, aes(x = as.numeric(Age)))
+g + geom_boxplot() +
+  facet_wrap(~ Diabetes_binary) +
+  labs(x = "Age", title = "Box Plots of Age Across Diabetes Indicator")
+```
+On average, people who have diabetes are in an older age category than those who are not not diabetic.
+
+Education
+```{r}
+diabetes_data |>
+  filter(Diabetes_binary == "diabetes")|>
+  summarize(mean_Age_cat = mean(as.numeric(Education)))
+```
+
+```{r}
+diabetes_data |>
+  filter(Diabetes_binary == "no diabetes")|>
+  summarize(mean_Age_cat = mean(as.numeric(Education)))
+```
+
+```{r}
+g <- ggplot(data = diabetes_data, aes(x = Education))
+g + geom_bar() +
+  facet_wrap(~ Diabetes_binary) + 
+  labs(title = "Histogram of Education Groups Across Diabetes Indicator")
+```
+
+Education level is slightly higher on average in people who do not have diabetes compared to the population of those who do have diabetes.
+
+BMI
+
+```{r}
+diabetes_data |>
+  filter(Diabetes_binary == "diabetes")|>
+  summarize(mean_Age_cat = mean(BMI))
+```
+
+```{r}
+diabetes_data |>
+  filter(Diabetes_binary == "no diabetes")|>
+  summarize(mean_Age_cat = mean(BMI))
 ```
 
 ```{r}
 g <- ggplot(data = diabetes_data, aes(x = BMI))
 g + geom_histogram() +
-  facet_wrap(~ Diabetes_binary)
+  facet_wrap(~ Diabetes_binary) + 
+  labs(title = "Histogram of BMI Across Diabetes Indicator")
 ```
 
+```{r}
+g <- ggplot(data = diabetes_data, aes(x = BMI))
+g + geom_boxplot() +
+  facet_wrap(~ Diabetes_binary) +
+  labs(x = "BMI", title = "Box Plots of BMI Across Diabetes Indicator")
+```
+
+On average, people with diabetes have a higher BMI than those who do no have diabetes. It's worth noting both populations have data that is right skewed so there are some data points that spread higher and far away from the mean.
+
+
+[Click here for the Modeling Page](modeling.html)
