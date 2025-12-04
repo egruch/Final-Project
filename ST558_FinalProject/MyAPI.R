@@ -49,8 +49,7 @@ diabetes_data<- diabetes_data |>
   )
 
 # Load the best model from previous sections
-load("rf_final_fit.RData")
-load("API_FinalProject/rf_final_wkf.RData")
+rf_final_fitAPI <- readRDS("rf_final_fit.rds")
 
 
 library(plumber)
@@ -68,30 +67,33 @@ function(name = "Ella Gruchacz", url = "https://github.com/egruch/Final-Project"
 }
 #http://localhost:8001/info
 
-#* Print Prediction
-#* @param 
-#* @param 
-#* @param 
-#* @param 
-#* @param 
+#* Print prediction
+#* @param HighBP
+#* @param HighChol
+#* @param BMI
+#* @param PhysActivity
+#* @param Age
 #* @get /pred
-function(HighBP = "high", HighChol = "high", BMI = 32, 
+function(HighBP = "high BP", HighChol = "high cholesterol", BMI = 32, 
          PhysActivity = "no", Age = "11") {
-  pred_df <- data.frame(HighBP,
-                        HighChol,
-                        BMI,
-                        PhysActivity,
-                        Age)
-  pred <- predict(extract_workflow(rf_final_fit), new_data = pred_df,type = "class")
-  print(pred)
+  pred_tib <- tibble(HighBP = factor(HighBP),
+                     HighChol = factor(HighChol),
+                     BMI = as.numeric(BMI),
+                     PhysActivity = factor(PhysActivity),
+                     Age = factor(Age))
+  pred <- predict(extract_workflow(rf_final_fitAPI), new_data = pred_tib,type = "class")
+  list(
+    input = pred_tib,
+    class = pred$.pred_class
+  )
 }
-#http://localhost:8001/pred
+#http://localhost:8001/pred?HighBP=high%20BP&HighChol=high%20cholesterol&BMI=32&PhysActivity=no&Age=11
 
 #* Return Confusion Matrix
 #* @serializer png
 #* @get /confusion
 function() {
-  pred_values <- predict(extract_workflow(rf_final_fit), diabetes_data, type = "class")
+  pred_values <- predict(extract_workflow(rf_final_fitAPI), diabetes_data, type = "class")
   pred_values <- pred_values$.pred_class
   actual_values <- diabetes_data$Diabetes_binary
   
@@ -100,10 +102,12 @@ function() {
   plt <- as.data.frame(cf$table)
   plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
   
-  ggplot(plt, aes(Prediction,Reference, fill= Freq)) +
+  g <- ggplot(plt, aes(Prediction,Reference, fill= Freq)) +
     geom_tile() + geom_text(aes(label=Freq)) +
     scale_fill_gradient(low="white", high="blue") +
     labs(x = "Reference",y = "Prediction", title = "Confusion Matrix of Diabetes Prediction")
+  
+  print(g)
 }
 
 #http://localhost:8001/confusion

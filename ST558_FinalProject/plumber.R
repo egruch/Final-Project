@@ -84,18 +84,21 @@ function(name = "Ella Gruchacz", url = "https://github.com/egruch/Final-Project"
 #* @param PhysActivity
 #* @param Age
 #* @get /pred
-function(HighBP = "high", HighChol = "high", BMI = 32, 
+function(HighBP = "high BP", HighChol = "high cholesterol", BMI = 32, 
           PhysActivity = "no", Age = "11") {
-    pred_df <- data.frame(HighBP,
-                          HighChol,
-                          BMI,
-                          PhysActivity,
-                          Age)
-    pred <- predict(extract_workflow(rf_final_fitAPI), new_data = pred_df,type = "class")
-    print(pred)
+    pred_tib <- tibble(HighBP = factor(HighBP),
+                          HighChol = factor(HighChol),
+                          BMI = as.numeric(BMI),
+                          PhysActivity = factor(PhysActivity),
+                          Age = factor(Age))
+    pred <- predict(extract_workflow(rf_final_fitAPI), new_data = pred_tib,type = "class")
+    list(
+      input = pred_tib,
+      class = pred$.pred_class
+    )
 }
 
-#* Return prediction
+#* Return confusion matrix
 #* @serializer png
 #* @get /confusion
 function() {
@@ -115,14 +118,14 @@ function() {
   print(g)
 }
 
-# Programmatically alter your API
-#* @plumber
-function(pr) {
-    pr %>%
-        # Overwrite the default serializer to return unboxed JSON
-        pr_set_serializer(serializer_unboxed_json())
-}
+# # Programmatically alter your API
+# #* @plumber
+# function(pr) {
+#     pr %>%
+#         # Overwrite the default serializer to return unboxed JSON
+#         pr_set_serializer(serializer_unboxed_json())
+# }
 
 # library(plumber)
-# r <- plumb("MyAPI.R")
+# r <- plumb("ST558_FinalProject/MyAPI.R")
 # r$run(port = 8001)
